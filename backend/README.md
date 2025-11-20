@@ -6,6 +6,16 @@ API REST para gestão de ativos físicos e seus responsáveis, desenvolvida com 
 ![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688)
+![JWT](https://img.shields.io/badge/auth-JWT-orange)
+
+## ✨ Features
+
+- ✅ **Validação com Pydantic**: Schemas robustos com validação automática
+- ✅ **Persistência com SQLAlchemy**: ORM moderno com suporte a CASCADE DELETE
+- ✅ **Testes Unitários**: 75 testes com 91% de cobertura
+- ✅ **Autenticação JWT**: Proteção de rotas com tokens JWT (HS256)
+- 🔄 **Documentação automática**: Swagger UI e ReDoc
+- 🔄 **API RESTful**: Endpoints padronizados e intuitivos
 
 ## 📋 Requisitos
 
@@ -71,7 +81,74 @@ O sistema utiliza SQLite com as seguintes tabelas:
 
 ## 🛣️ Rotas da API
 
+### 🔐 Autenticação
+
+Todas as rotas da API (exceto a rota de autenticação) requerem um token JWT válido no header `Authorization`.
+
+#### POST /integrations/auth
+Endpoint de autenticação que retorna um token JWT.
+
+**Request Body (form-data):**
+```
+login: eyesonasset
+password: eyesonasset
+```
+
+**Response (200):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 60
+}
+```
+
+**Response (401 - Credenciais inválidas):**
+```json
+{
+  "detail": "Credenciais inválidas"
+}
+```
+
+**⚠️ Importante:**
+- O token expira em **60 segundos (1 minuto)**
+- Use o token no header: `Authorization: Bearer {token}`
+- Credenciais fixas: `login=eyesonasset`, `password=eyesonasset`
+
+**Exemplo de uso com curl:**
+```bash
+# 1. Obter o token
+curl -X POST "http://localhost:8000/integrations/auth" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "login=eyesonasset&password=eyesonasset"
+
+# 2. Usar o token nas requisições
+curl -X GET "http://localhost:8000/integrations/owners" \
+  -H "Authorization: Bearer {seu-token-aqui}"
+```
+
+**Exemplo com Python:**
+```python
+import requests
+
+# 1. Autenticar
+response = requests.post(
+    "http://localhost:8000/integrations/auth",
+    data={"login": "eyesonasset", "password": "eyesonasset"}
+)
+token = response.json()["access_token"]
+
+# 2. Usar o token
+headers = {"Authorization": f"Bearer {token}"}
+response = requests.get(
+    "http://localhost:8000/integrations/owners",
+    headers=headers
+)
+```
+
 ### Owners (Responsáveis)
+
+**⚠️ Todas as rotas abaixo requerem autenticação JWT**
 
 #### POST /integrations/owner
 Cria um novo responsável.
@@ -134,6 +211,8 @@ Deleta um responsável e todos os seus ativos (CASCADE DELETE).
 ⚠️ **ATENÇÃO**: Esta operação também deletará todos os ativos associados a este responsável.
 
 ### Assets (Ativos)
+
+**⚠️ Todas as rotas abaixo requerem autenticação JWT**
 
 #### POST /integrations/asset
 Cria um novo ativo.

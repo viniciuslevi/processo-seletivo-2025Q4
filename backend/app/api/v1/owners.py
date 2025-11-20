@@ -5,6 +5,7 @@ from typing import List
 from app.schemas.owner import OwnerCreate, OwnerUpdate, OwnerResponse
 from app.services.owner_service import OwnerService
 from app.db.sessions import get_db
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/integrations", tags=["Owners"])
 
@@ -18,7 +19,8 @@ router = APIRouter(prefix="/integrations", tags=["Owners"])
 )
 async def create_owner(
     owner: OwnerCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> OwnerResponse:
     """
     Cria um novo responsável com os seguintes campos obrigatórios:
@@ -47,7 +49,8 @@ async def create_owner(
 )
 async def get_owner(
     owner_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> OwnerResponse:
     """
     Busca um responsável pelo ID.
@@ -72,7 +75,8 @@ async def get_owner(
 async def list_owners(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> List[OwnerResponse]:
     """
     Lista todos os responsáveis com paginação.
@@ -93,7 +97,8 @@ async def list_owners(
 async def update_owner(
     owner_id: str,
     owner: OwnerUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> OwnerResponse:
     """
     Atualiza um responsável existente.
@@ -124,7 +129,8 @@ async def update_owner(
 )
 async def delete_owner(
     owner_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Deleta um responsável pelo ID.

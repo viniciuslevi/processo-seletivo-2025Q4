@@ -5,6 +5,7 @@ from typing import List
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
 from app.services.asset_service import AssetService
 from app.db.sessions import get_db
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/integrations", tags=["Assets"])
 
@@ -18,7 +19,8 @@ router = APIRouter(prefix="/integrations", tags=["Assets"])
 )
 async def create_asset(
     asset: AssetCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> AssetResponse:
     """
     Cria um novo ativo com os seguintes campos obrigatórios:
@@ -56,7 +58,8 @@ async def create_asset(
 )
 async def get_asset(
     asset_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> AssetResponse:
     """
     Busca um ativo pelo ID.
@@ -81,7 +84,8 @@ async def get_asset(
 async def list_assets(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> List[AssetResponse]:
     """
     Lista todos os ativos com paginação.
@@ -102,7 +106,8 @@ async def list_assets(
 async def update_asset(
     asset_id: str,
     asset: AssetUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ) -> AssetResponse:
     """
     Atualiza um ativo existente.
@@ -143,7 +148,8 @@ async def update_asset(
 )
 async def delete_asset(
     asset_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Deleta um ativo pelo ID.

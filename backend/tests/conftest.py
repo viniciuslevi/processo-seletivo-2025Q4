@@ -95,17 +95,40 @@ def sample_asset_data():
 
 
 @pytest.fixture
-def created_owner(client, sample_owner_data):
+def auth_headers(client):
+    """Retorna headers com token JWT válido"""
+    response = client.post(
+        "/integrations/auth",
+        data={
+            "login": "eyesonasset",
+            "password": "eyesonasset"
+        }
+    )
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def created_owner(client, sample_owner_data, auth_headers):
     """Cria um owner no banco de dados de teste e retorna seus dados"""
-    response = client.post("/integrations/owner", json=sample_owner_data)
+    response = client.post(
+        "/integrations/owner",
+        json=sample_owner_data,
+        headers=auth_headers
+    )
     assert response.status_code == 201
     return response.json()
 
 
 @pytest.fixture
-def created_asset(client, created_owner, sample_asset_data):
+def created_asset(client, created_owner, sample_asset_data, auth_headers):
     """Cria um asset no banco de dados de teste e retorna seus dados"""
     asset_data = {**sample_asset_data, "owner": created_owner["id"]}
-    response = client.post("/integrations/asset", json=asset_data)
+    response = client.post(
+        "/integrations/asset",
+        json=asset_data,
+        headers=auth_headers
+    )
     assert response.status_code == 201
     return response.json()
