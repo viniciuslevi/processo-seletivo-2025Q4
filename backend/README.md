@@ -17,48 +17,58 @@ API REST para gestão de ativos físicos e seus responsáveis, desenvolvida com 
 - ✅ **Autenticação JWT**: Proteção de rotas com tokens JWT (HS256)
 - ✅ **Usuários com bcrypt**: Hash seguro de senhas com bcrypt
 - ✅ **CRUD Completo**: Operações para owners, assets e users
+- ✅ **Docker Ready**: Containerização completa com Docker Compose
 - 🔄 **Documentação automática**: Swagger UI e ReDoc
 - 🔄 **API RESTful**: Endpoints padronizados e intuitivos
 
 ## 📋 Requisitos
 
+### Opção 1: Docker (Recomendado)
+- Docker 20.10+
+- Docker Compose 1.29+
+
+### Opção 2: Python Local
 - Python 3.10+
 - SQLite (incluído no Python)
 
-## 🚀 Setup do Projeto
+## 🚀 Quick Start
 
-### 1. Criar e ativar ambiente virtual
-
-```bash
-# No diretório raiz do projeto
-python3 -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# ou
-.venv\Scripts\activate  # Windows
-```
-
-### 2. Instalar dependências
+### Com Docker (Recomendado)
 
 ```bash
+# 1. Build da imagem
 cd backend
+docker-compose build
+
+# 2. Iniciar servidor
+docker-compose up -d
+
+# 3. Criar usuário padrão
+docker-compose exec backend python create_default_user.py
+
+# 4. Acessar documentação
+# http://localhost:8000/docs
+```
+
+### Sem Docker
+
+```bash
+# 1. Criar ambiente virtual
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+
+# 2. Instalar dependências
 pip install -r requirements.txt
-```
 
-### 3. Criar usuário padrão
-
-```bash
-# Cria o usuário padrão no banco de dados
+# 3. Criar usuário padrão
 python create_default_user.py
-```
 
-### 4. Iniciar o servidor
-
-```bash
-# A partir do diretório backend
+# 4. Iniciar servidor
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-O servidor estará disponível em: `http://localhost:8000`
+**📖 Para instruções detalhadas, consulte [SETUP.md](SETUP.md)**
 
 ## 📚 Documentação da API
 
@@ -338,6 +348,16 @@ Deleta um ativo.
 - [x] Endpoint de gerenciamento de usuários
 - [x] Script de criação de usuário padrão
 
+### Nível 6 - Infraestrutura e Documentação ✓
+- [x] **Dockerfile** otimizado para produção
+- [x] **docker-compose.yaml** com hot reload
+- [x] **Documentação completa** de setup e deploy
+- [x] **.dockerignore** para builds eficientes
+- [x] **.env.example** com variáveis de ambiente
+- [x] **Health checks** configurados
+- [x] **Volume persistente** para banco de dados
+- [x] **Guia de troubleshooting** completo
+
 ## 🧪 Testes
 
 ### Executar todos os testes
@@ -540,11 +560,45 @@ backend/
 │   ├── test_api_users.py     # Testes API users (18 testes)
 │   ├── test_api_owners.py    # Testes API owners (15 testes)
 │   └── test_api_assets.py    # Testes API assets (16 testes)
-├── pytest.ini                # Configuração do pytest
-├── requirements.txt          # Dependências Python
-├── create_default_user.py    # Script de criação do usuário padrão
-└── assets.db                # Banco de dados SQLite (gerado automaticamente)
+├── Dockerfile                # Imagem Docker da aplicação
+├── docker-compose.yaml       # Orquestração de containers
+├── .dockerignore            # Arquivos ignorados no build
+├── .env.example             # Exemplo de variáveis de ambiente
+├── pytest.ini               # Configuração do pytest
+├── requirements.txt         # Dependências Python
+├── create_default_user.py   # Script de criação do usuário padrão
+├── SETUP.md                 # Guia completo de setup e deploy
+└── assets.db               # Banco de dados SQLite (gerado automaticamente)
 ```
+
+## 🐳 Docker
+
+### Comandos Principais
+
+```bash
+# Build e iniciar
+docker-compose up --build -d
+
+# Ver logs
+docker-compose logs -f backend
+
+# Executar comandos no container
+docker-compose exec backend python create_default_user.py
+
+# Parar containers
+docker-compose down
+
+# Executar testes
+docker-compose run --rm backend pytest tests/ -v --cov=app
+```
+
+### Estrutura Docker
+
+- **Dockerfile**: Imagem base Python 3.10-slim com otimizações
+- **docker-compose.yaml**: Serviços backend + testes
+- **Volume persistente**: Banco de dados mantido em `./data`
+- **Hot reload**: Código sincronizado para desenvolvimento
+- **Health checks**: Monitoramento automático de saúde
 
 ## 🔍 Detalhes Técnicos
 

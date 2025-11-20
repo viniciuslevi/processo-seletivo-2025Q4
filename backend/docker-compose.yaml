@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eyesonasset-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/assets.db
+      - SECRET_KEY=your-secret-key-here-change-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+    volumes:
+      # Persistir banco de dados
+      - ./data:/app/data
+      # Hot reload em desenvolvimento (comentar em produção)
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Serviço opcional para executar testes
+  backend-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eyesonasset-backend-test
+    volumes:
+      - ./:/app
+    command: pytest tests/ -v --cov=app --cov-report=term-missing
+    profiles:
+      - test
+
+volumes:
+  db-data:
+    driver: local
