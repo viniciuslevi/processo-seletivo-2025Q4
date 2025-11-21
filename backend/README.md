@@ -2,8 +2,7 @@
 
 API REST para gestão de ativos físicos e seus responsáveis, desenvolvida com FastAPI e SQLAlchemy.
 
-![Tests](https://img.shields.io/badge/tests-127%20passed-success)
-![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)
+![Tests](https://img.shields.io/badge/tests-111%20passed-success)
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688)
 ![JWT](https://img.shields.io/badge/auth-JWT-orange)
@@ -13,13 +12,11 @@ API REST para gestão de ativos físicos e seus responsáveis, desenvolvida com 
 
 - ✅ **Validação com Pydantic**: Schemas robustos com validação automática
 - ✅ **Persistência com SQLAlchemy**: ORM moderno com suporte a CASCADE DELETE
-- ✅ **Testes Unitários**: 127 testes com 94% de cobertura
-- ✅ **Autenticação JWT**: Proteção de rotas com tokens JWT (HS256)
-- ✅ **Usuários com bcrypt**: Hash seguro de senhas com bcrypt
-- ✅ **CRUD Completo**: Operações para owners, assets e users
-- ✅ **Docker Ready**: Containerização completa com Docker Compose
-- 🔄 **Documentação automática**: Swagger UI e ReDoc
-- 🔄 **API RESTful**: Endpoints padronizados e intuitivos
+- ✅ **Autenticação JWT**: Tokens JWT (HS256) com 60 minutos de expiração
+- ✅ **Segurança**: Hash bcrypt para senhas
+- ✅ **CRUD Completo**: Owners, Assets e Users
+- ✅ **Docker Ready**: Containerização completa
+- ✅ **Documentação automática**: Swagger UI e ReDoc
 
 ## 📋 Requisitos
 
@@ -36,18 +33,14 @@ API REST para gestão de ativos físicos e seus responsáveis, desenvolvida com 
 ### Com Docker (Recomendado)
 
 ```bash
-# 1. Build da imagem
+# 1. Iniciar servidor
 cd backend
-docker-compose build
+docker compose up -d --build
 
-# 2. Iniciar servidor
-docker-compose up -d
-
-# 3. Criar usuário padrão
-docker exec eyesonasset-backend python create_default_user.py
-
-# 4. Acessar documentação
+# 2. Acessar documentação
 # http://localhost:8000/docs
+
+# 3. Criar primeiro usuário pelo endpoint /integrations/cadastro
 ```
 
 ### Sem Docker
@@ -61,14 +54,9 @@ source venv/bin/activate  # Linux/Mac
 # 2. Instalar dependências
 pip install -r requirements.txt
 
-# 3. Criar usuário padrão
-python create_default_user.py
-
-# 4. Iniciar servidor
+# 3. Iniciar servidor
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-
-**📖 Para instruções detalhadas, consulte [SETUP.md](SETUP.md)**
 
 ## 📝 Comandos Essenciais
 
@@ -113,9 +101,6 @@ docker logs eyesonasset-backend --tail 100 2>&1 | grep -E "(GET|POST|PUT|DELETE)
 ### Execução de Comandos no Container
 
 ```bash
-# Criar usuário padrão (username: eyesonasset, password: eyesonasset)
-docker exec eyesonasset-backend python create_default_user.py
-
 # Executar testes
 docker exec eyesonasset-backend pytest
 
@@ -124,9 +109,6 @@ docker exec eyesonasset-backend pytest --cov=app --cov-report=term-missing
 
 # Abrir shell no container
 docker exec -it eyesonasset-backend bash
-
-# Ver arquivos no container
-docker exec eyesonasset-backend ls -la
 
 # Ver banco de dados
 docker exec eyesonasset-backend ls -lh eyesonasset.db
@@ -152,16 +134,17 @@ docker exec eyesonasset-backend rm eyesonasset.db
 
 ```bash
 # Verificar se a API está respondendo
-curl http://localhost:8000/docs
+curl http://localhost:8000/
 
-# Teste de autenticação
-curl -X POST "http://localhost:8000/login" \
+# Criar primeiro usuário
+curl -X POST "http://localhost:8000/integrations/cadastro" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin123@"}'
+
+# Fazer login
+curl -X POST "http://localhost:8000/integrations/login" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=eyesonasset&password=eyesonasset"
-
-# Listar owners (requer token)
-curl -X GET "http://localhost:8000/owners" \
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+  -d "username=admin&password=Admin123@"
 ```
 
 ## 📚 Documentação da API
@@ -205,21 +188,34 @@ O sistema utiliza SQLite com as seguintes tabelas:
 
 ### 🔐 Autenticação
 
-Todas as rotas da API (exceto `/login` e `/cadastro`) requerem um token JWT válido no header `Authorization`.
+Todas as rotas da API (exceto `/integrations/login` e `/integrations/cadastro`) requerem um token JWT válido no header `Authorization`.
 
-#### POST /login
-Endpoint de autenticação que retorna um token JWT.
-
-**Credenciais padrão:**
-- Username: `eyesonasset`
-- Password: `eyesonasset`
+#### POST /integrations/cadastro
+Endpoint para criar novos usuários.
 
 **Request Body (JSON):**
 ```json
 {
-  "username": "eyesonasset",
-  "password": "eyesonasset"
+  "username": "seu_usuario",
+  "password": "SuaSenha123@"
 }
+```
+
+**Response (201):**
+```json
+{
+  "id": "uuid-gerado-automaticamente",
+  "username": "seu_usuario"
+}
+```
+
+#### POST /integrations/login
+Endpoint de autenticação que retorna um token JWT.
+
+**Request Body (Form Data):**
+```
+username=seu_usuario
+password=SuaSenha123@
 ```
 
 **Response (200):**
@@ -231,73 +227,33 @@ Endpoint de autenticação que retorna um token JWT.
 }
 ```
 
-**Response (401 - Credenciais inválidas):**
-```json
-{
-  "detail": "Credenciais inválidas"
-}
-```
-
-#### POST /cadastro
-Endpoint de registro de novos usuários.
-
-**Request Body (JSON):**
-```json
-{
-  "username": "novo_usuario",
-  "password": "senha_segura"
-}
-```
-
-**Response (201):**
-```json
-{
-  "id": "uuid-gerado-automaticamente",
-  "username": "novo_usuario"
-}
-```
-
 **⚠️ Importante:**
 - O token expira em **60 minutos (3600 segundos)**
 - Use o token no header: `Authorization: Bearer {token}`
-- Credenciais padrão: `username=eyesonasset`, `password=eyesonasset`
+- Crie seu primeiro usuário usando `/integrations/cadastro`
 
-**Exemplo de uso com curl:**
+**Exemplo completo:**
 ```bash
-# 1. Obter o token
-curl -X POST "http://localhost:8000/login" \
+# 1. Criar usuário
+curl -X POST "http://localhost:8000/integrations/cadastro" \
   -H "Content-Type: application/json" \
-  -d '{"username":"eyesonasset","password":"eyesonasset"}'
+  -d '{"username":"admin","password":"Admin123@"}'
 
-# 2. Usar o token nas requisições
-curl -X GET "http://localhost:8000/owners" \
+# 2. Fazer login
+curl -X POST "http://localhost:8000/integrations/login" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin&password=Admin123@"
+
+# 3. Usar o token nas requisições
+curl -X GET "http://localhost:8000/integrations/owners" \
   -H "Authorization: Bearer {seu-token-aqui}"
-```
-
-**Exemplo com Python:**
-```python
-import requests
-
-# 1. Autenticar
-response = requests.post(
-    "http://localhost:8000/login",
-    json={"username": "eyesonasset", "password": "eyesonasset"}
-)
-token = response.json()["access_token"]
-
-# 2. Usar o token
-headers = {"Authorization": f"Bearer {token}"}
-response = requests.get(
-    "http://localhost:8000/owners",
-    headers=headers
-)
 ```
 
 ### Owners (Responsáveis)
 
 **⚠️ Todas as rotas abaixo requerem autenticação JWT**
 
-#### POST /owner
+#### POST /integrations/owner
 Cria um novo responsável.
 
 **Request Body:**
@@ -319,7 +275,7 @@ Cria um novo responsável.
 }
 ```
 
-#### GET /owner/{owner_id}
+#### GET /integrations/owner/{owner_id}
 Busca um responsável por ID.
 
 **Response (200):**
@@ -332,14 +288,14 @@ Busca um responsável por ID.
 }
 ```
 
-#### GET /owners
+#### GET /integrations/owners
 Lista todos os responsáveis (com paginação).
 
 **Query Parameters:**
 - `skip`: Número de registros a pular (padrão: 0)
 - `limit`: Número máximo de registros (padrão: 100)
 
-#### PUT /owner/{owner_id}
+#### PUT /integrations/owner/{owner_id}
 Atualiza um responsável existente.
 
 **Request Body (campos opcionais):**
@@ -350,7 +306,7 @@ Atualiza um responsável existente.
 }
 ```
 
-#### DELETE /owner/{owner_id}
+#### DELETE /integrations/owner/{owner_id}
 Deleta um responsável e todos os seus ativos (CASCADE DELETE).
 
 **Response:** 204 No Content
@@ -361,7 +317,7 @@ Deleta um responsável e todos os seus ativos (CASCADE DELETE).
 
 **⚠️ Todas as rotas abaixo requerem autenticação JWT**
 
-#### POST /asset
+#### POST /integrations/asset
 Cria um novo ativo.
 
 **Request Body:**
@@ -383,17 +339,17 @@ Cria um novo ativo.
 }
 ```
 
-#### GET /asset/{asset_id}
+#### GET /integrations/asset/{asset_id}
 Busca um ativo por ID.
 
-#### GET /assets
+#### GET /integrations/assets
 Lista todos os ativos (com paginação).
 
 **Query Parameters:**
 - `skip`: Número de registros a pular (padrão: 0)
 - `limit`: Número máximo de registros (padrão: 100)
 
-#### PUT /asset/{asset_id}
+#### PUT /integrations/asset/{asset_id}
 Atualiza um ativo existente.
 
 **Request Body (campos opcionais):**
@@ -404,7 +360,7 @@ Atualiza um ativo existente.
 }
 ```
 
-#### DELETE /asset/{asset_id}
+#### DELETE /integrations/asset/{asset_id}
 Deleta um ativo.
 
 **Response:** 204 No Content
@@ -413,7 +369,7 @@ Deleta um ativo.
 
 **⚠️ Apenas o próprio usuário pode atualizar ou deletar sua conta**
 
-#### PUT /user
+#### PUT /integrations/user
 Atualiza os dados do usuário autenticado.
 
 **Request Body:**
@@ -424,7 +380,7 @@ Atualiza os dados do usuário autenticado.
 }
 ```
 
-#### DELETE /user
+#### DELETE /integrations/user
 Deleta a conta do usuário autenticado.
 
 **Response:** 204 No Content
@@ -450,48 +406,27 @@ Deleta a conta do usuário autenticado.
 - [x] Paginação em listagens
 
 ### Nível 3 - Testes ✓
-- [x] **127 testes unitários** com pytest
-- [x] **94% de cobertura** de código
-- [x] Testes para modelos (SQLAlchemy)
-- [x] Testes para schemas (Pydantic)
-- [x] Testes para serviços (lógica de negócio)
-- [x] Testes para rotas da API (integração)
+- [x] Testes para modelos, schemas e serviços
+- [x] Testes para rotas da API
 - [x] Testes de autenticação JWT
-- [x] Testes de usuários e bcrypt
-- [x] Fixtures compartilhadas (conftest.py)
 - [x] Banco de dados em memória para testes
-- [x] Relatório de cobertura HTML
-- [x] Isolamento entre testes
 
 ### Nível 4 - Autenticação JWT ✓
-- [x] **Autenticação via token JWT** (HS256)
-- [x] **Proteção de todas as rotas** (exceto /auth)
-- [x] **Expiração de tokens** (1 minuto)
-- [x] **18 testes de autenticação**
+- [x] Autenticação via token JWT (HS256)
+- [x] Proteção de rotas (exceto /integrations/login e /integrations/cadastro)
+- [x] Expiração de tokens (60 minutos)
 - [x] Validação de tokens inválidos/expirados
-- [x] Middleware de autenticação personalizado
-- [x] Headers Authorization com Bearer token
-- [x] Mensagens de erro adequadas (401/403)
 
 ### Nível 5 - Usuários ✓
-- [x] **Entidade User** com hash bcrypt
-- [x] **Autenticação via banco de dados**
-- [x] **CRUD completo de usuários**
-- [x] **34 novos testes** (service + API)
-- [x] Hash seguro de senhas (bcrypt)
-- [x] Validação de username único
-- [x] Endpoint de gerenciamento de usuários
-- [x] Script de criação de usuário padrão
+- [x] Entidade User com hash bcrypt
+- [x] Autenticação via banco de dados
+- [x] Endpoints de cadastro e login
+- [x] Hash seguro de senhas
 
-### Nível 6 - Infraestrutura e Documentação ✓
-- [x] **Dockerfile** otimizado para produção
-- [x] **docker-compose.yaml** com hot reload
-- [x] **Documentação completa** de setup e deploy
-- [x] **.dockerignore** para builds eficientes
-- [x] **.env.example** com variáveis de ambiente
-- [x] **Health checks** configurados
-- [x] **Volume persistente** para banco de dados
-- [x] **Guia de troubleshooting** completo
+### Nível 6 - Infraestrutura ✓
+- [x] Dockerfile otimizado
+- [x] docker-compose.yaml
+- [x] Documentação completa
 
 ## 🧪 Testes
 
@@ -546,16 +481,15 @@ tests/
 
 ### Cobertura de Testes
 
-**Total: 127 testes | 94% de cobertura**
+**Total: 111 testes passando**
 
-| Módulo | Cobertura | Detalhes |
-|--------|-----------|----------|
-| **Models** | 90-100% | Modelos SQLAlchemy (User, Owner, Asset) |
-| **Services** | 93-100% | Lógica de negócio (CRUD + Auth) |
-| **API Routes** | 96-100% | Endpoints REST |
-| **Security** | 94% | JWT + bcrypt |
-| **Schemas** | 82-100% | Validação Pydantic |
-| **Database** | 100% | Configuração e sessões |
+| Módulo | Testes |
+|--------|--------|
+| **Models** | 11 testes |
+| **Schemas** | 14 testes |
+| **Services** | 35 testes (Owner, Asset, User) |
+| **API Routes** | 33 testes |
+| **Auth** | 18 testes |
 
 ### O que é testado
 
@@ -631,22 +565,7 @@ def test_example(created_asset):
     ...
 ```
 
-## 🚀 Quick Start
 
-### Rodar testes do Nível 1
-```bash
-python test_nivel1.py
-```
-
-### Rodar testes do Nível 2
-```bash
-python test_nivel2.py
-```
-
-### Rodar testes do Nível 3 (Testes Unitários)
-```bash
-pytest
-```
 
 ## 🏗️ Estrutura do Projeto
 
@@ -751,17 +670,18 @@ docker-compose up --build
 
 **2. Erro "Credenciais inválidas"**
 ```bash
-# Recriar usuário padrão
-docker exec eyesonasset-backend python create_default_user.py
+# Criar novo usuário pelo endpoint de cadastro
+curl -X POST "http://localhost:8000/integrations/cadastro" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin123@"}'
 ```
 
 **3. Erro "Database is locked"**
 ```bash
 # Parar container, remover banco e recriar
-docker-compose down
-rm backend/eyesonasset.db
-docker-compose up -d
-docker exec eyesonasset-backend python create_default_user.py
+docker compose down
+rm eyesonasset.db
+docker compose up -d
 ```
 
 **4. Frontend não consegue conectar**
@@ -813,36 +733,33 @@ Isso garante que ao deletar um Owner, todos os seus Assets sejam automaticamente
 
 ## 📊 Estatísticas do Projeto
 
-- **Linhas de código**: ~1.500
-- **Testes**: 127
-- **Cobertura**: 94%
-- **Endpoints**: 12 (/login, /cadastro, /owner, /owners, /asset, /assets, /user)
+- **Testes**: 111 testes passando
+- **Endpoints**: 12 (prefixo /integrations/)
 - **Modelos**: 3 (Owner, Asset, User)
-- **Tempo de execução dos testes**: ~1.6s
 - **Token expiration**: 60 minutos
-- **Banco de dados**: eyesonasset.db (SQLite com UUIDs)
+- **Banco de dados**: SQLite com UUIDs
 
 ## 🎯 Para Começar Rapidamente
 
 ### Primeira execução (com Docker)
 
 ```bash
-# 1. Clonar repositório (se ainda não clonou)
+# 1. Build e iniciar
 cd backend
+docker compose up -d --build
 
-# 2. Build e iniciar
-docker-compose up -d --build
+# 2. Verificar se está funcionando
+curl http://localhost:8000/
 
-# 3. Criar usuário padrão
-docker exec eyesonasset-backend python create_default_user.py
-
-# 4. Verificar se está funcionando
-curl http://localhost:8000/docs
-
-# 5. Fazer login de teste
-curl -X POST "http://localhost:8000/login" \
+# 3. Criar primeiro usuário
+curl -X POST "http://localhost:8000/integrations/cadastro" \
   -H "Content-Type: application/json" \
-  -d '{"username":"eyesonasset","password":"eyesonasset"}'
+  -d '{"username":"admin","password":"Admin123@"}'
+
+# 4. Fazer login
+curl -X POST "http://localhost:8000/integrations/login" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin&password=Admin123@"
 ```
 
 ### Acompanhar logs em tempo real
@@ -857,13 +774,9 @@ docker logs eyesonasset-backend -f 2>&1 | grep -i error
 
 **✅ Pronto!** Backend rodando em `http://localhost:8000`
 
-### 📚 Documentação Adicional
-
-- **[Checklist de Primeira Execução](../CHECKLIST.md)** - Guia passo a passo
-- **[Comandos Rápidos](../COMMANDS.md)** - Referência rápida
-- **[Troubleshooting](../TROUBLESHOOTING.md)** - Solução de problemas
-- **[README Principal](../README.md)** - Visão geral do projeto
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
 ---
 
-**Desenvolvido usando FastAPI, SQLAlchemy e Docker**
+**Desenvolvido com FastAPI, SQLAlchemy e Docker**
